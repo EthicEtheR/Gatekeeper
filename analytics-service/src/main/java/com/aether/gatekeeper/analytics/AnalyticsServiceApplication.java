@@ -1,0 +1,15 @@
+package com.aether.gatekeeper.analytics;
+
+import com.mongodb.client.MongoDatabase;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration;
+
+@SpringBootApplication(exclude = MongoAutoConfiguration.class)
+public class AnalyticsServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(AnalyticsServiceApplication.class, args);
+	}
+
+}
