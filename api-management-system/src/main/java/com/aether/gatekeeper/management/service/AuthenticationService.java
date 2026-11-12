@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -50,12 +51,12 @@ public class AuthenticationService {
         String role=user.getRole().getName();
         Long organizationId=(user.getOrganization()==null?null : user.getOrganization().getId());
 
-       JwtClaimsSet.Builder claims=JwtClaimsSet.builder()
-               .issuedAt(issuedAt)
-               .issuer("gatekeeper-api-management")
-               .expiresAt(issuedAt.plusSeconds(expirationTime))
-               .subject(user.getUsername())
-               .claim("role",role);
+        JwtClaimsSet.Builder claims = JwtClaimsSet.builder()
+                .issuedAt(issuedAt)
+                .issuer("gatekeeper-api-management")
+                .expiresAt(issuedAt.plusSeconds(expirationTime))
+                .subject(user.getUsername())
+                .claim("roles", List.of(role));
 
        if(organizationId!=null)
            claims.claim("organizationId",organizationId);

@@ -1,11 +1,8 @@
 package com.aether.gatekeeper.management.config;
 
-import ch.qos.logback.core.pattern.Converter;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -31,6 +28,9 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(http->
                 http.requestMatchers("/health","/api/auth/login").permitAll()
+                        .requestMatchers("/api/platform/org/**").hasRole("PLATFORM_ADMIN")
+                        .requestMatchers("/api/tenant/**").hasRole("TENANT_ADMIN")
+                        .requestMatchers("/api/gateway/**").hasRole("GATEWAY_ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o ->
                         o.jwt(j -> j.jwtAuthenticationConverter(jwtAuthenticationConverter())))

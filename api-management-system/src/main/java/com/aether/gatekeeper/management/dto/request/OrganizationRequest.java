@@ -14,8 +14,11 @@ public class OrganizationRequest {
     private String name;
 
     @NotBlank
-    @Size(max = 150)
-    @Pattern(regexp = "^[a-z0-9]+-[a-z0-9]+$",
-            message = "slug must contain lowercase letters,numbers and single hyphen only")
+    @Size(max = 50)
+    @Pattern(
+            regexp = "^[a-z0-9]+(-[a-z0-9]+)?$",
+            message = "Slug must contain lowercase letters, numbers, and at most one hyphen"
+    )
     private String slug;
+
 }

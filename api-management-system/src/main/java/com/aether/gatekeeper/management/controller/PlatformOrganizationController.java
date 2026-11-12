@@ -1,7 +1,9 @@
 package com.aether.gatekeeper.management.controller;
 
+import com.aether.gatekeeper.management.dto.request.TenantAdminRequest;
 import com.aether.gatekeeper.management.dto.request.OrganizationRequest;
 import com.aether.gatekeeper.management.dto.request.OrganizationStatusRequest;
+import com.aether.gatekeeper.management.dto.response.TenantAdminResponse;
 import com.aether.gatekeeper.management.dto.response.OrganizationResponse;
 import com.aether.gatekeeper.management.service.OrganizationService;
 import jakarta.validation.Valid;
@@ -54,6 +56,35 @@ public class PlatformOrganizationController {
         organizationService.deleteOrganization(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
                 .body("Delete successfully");
+    }
+
+// -------CRUD for tenant by Platform-admin
+
+    @PostMapping("/tenant/{id}")
+    public ResponseEntity<TenantAdminResponse> createTenet(@Valid
+                                                              @RequestBody TenantAdminRequest userRequest,
+                                                           @PathVariable Long id){
+          return ResponseEntity.status(HttpStatus.CREATED)
+                  .body(organizationService.createTenant(id,userRequest));
+
+    }
+
+    @GetMapping("/tenant/{orgId}")
+    public ResponseEntity<TenantAdminResponse> getTenant(@PathVariable Long orgId){
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(organizationService.getTenant(orgId));
+    }
+
+    @PutMapping("/tenant/{id}")
+    public ResponseEntity<TenantAdminResponse> updateTenant(@PathVariable  Long id,
+            @Valid @RequestBody TenantAdminRequest request){
+        return ResponseEntity.ok(organizationService.updateTenant(id,request));
+    }
+    @DeleteMapping("/tenant/{id}")
+    public ResponseEntity<?> deleteTenant(@PathVariable Long id){
+        organizationService.deleteTenant(id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                .build();
     }
 
 
