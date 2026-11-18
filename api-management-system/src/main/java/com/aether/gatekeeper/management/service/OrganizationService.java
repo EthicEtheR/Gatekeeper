@@ -3,6 +3,7 @@ package com.aether.gatekeeper.management.service;
 import com.aether.gatekeeper.management.dto.request.TenantAdminRequest;
 import com.aether.gatekeeper.management.dto.request.OrganizationRequest;
 import com.aether.gatekeeper.management.dto.request.OrganizationStatusRequest;
+import com.aether.gatekeeper.management.dto.request.TenantOrganizationRequest;
 import com.aether.gatekeeper.management.dto.response.TenantAdminResponse;
 import com.aether.gatekeeper.management.dto.response.OrganizationResponse;
 import com.aether.gatekeeper.management.entity.ManagementUser;
@@ -15,6 +16,7 @@ import com.aether.gatekeeper.management.repository.OrganizationRepository;
 
 
 import com.aether.gatekeeper.management.repository.RoleRepository;
+import com.aether.gatekeeper.management.util.TenantContext;
 import jakarta.validation.Valid;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
@@ -32,12 +34,14 @@ public class OrganizationService {
      private final ManagementUserRepository managementUserRepository;
      private final RoleRepository roleRepository;
      private final PasswordEncoder passwordEncoder;
+     private final TenantContext tenantContext;
 
-    public OrganizationService(OrganizationRepository organizationRepository, ManagementUserRepository managementUserRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public OrganizationService(OrganizationRepository organizationRepository, ManagementUserRepository managementUserRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, TenantContext tenantContext) {
         this.organizationRepository = organizationRepository;
         this.managementUserRepository = managementUserRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.tenantContext = tenantContext;
     }
 
     @Transactional
@@ -140,7 +144,7 @@ public class OrganizationService {
     }
 
 
-//    ----------CRUD for TENET
+//    ----------CRUD for TENET--------------------------->
 
     @Transactional
     public @Nullable TenantAdminResponse createTenant(Long orgId, TenantAdminRequest userRequest) {
@@ -193,31 +197,6 @@ public class OrganizationService {
     }
 
 
-
-
-    // TODO we have to improve checkUnique method logic ,can throw null pointer error
-
-    private boolean checkUnique(OrganizationRequest request) {
-
-        if(request.getName()!=null &&
-                Boolean.TRUE.equals(organizationRepository.existsByNameIgnoreCase(request.getName())))
-                return true;
-
-        if(request.getSlug()!=null &&
-                Boolean.TRUE.equals(organizationRepository.existsBySlugIgnoreCase(request.getSlug())))
-                return true;
-
-        return false;
-    }
-
-    private OrganizationResponse entityToOrgDto(Organization org){
-
-        return  new OrganizationResponse(org.getId(),
-                org.getName(),org.getSlug(),org.getStatus(),
-                org.getCreatedAt(),org.getUpdatedAt());
-    }
-
-
     @Transactional
     public @Nullable TenantAdminResponse updateTenant(Long id, @Valid TenantAdminRequest request) {
 
@@ -243,5 +222,57 @@ public class OrganizationService {
                 .orElseThrow(()->new ApiException("Tenant admin is not exist ",HttpStatus.CONFLICT));
 
         managementUserRepository.delete(user);
+    }
+
+//    CRUD for Own Organization by tenant-admin-------------------------------
+
+    @Transactional(readOnly = true)
+    public @Nullable OrganizationResponse getOwnOrganization() {
+
+        return entityToOrgDto(tenantContext.getOrganization());
+
+    }
+
+
+    @Transactional
+    public @Nullable OrganizationResponse updateOwnOrganization(
+            @Valid TenantOrganizationRequest request){
+
+        Organization org=tenantContext.getOrganization();
+
+        if(!org.getName().equalsIgnoreCase(request.getName()) &&
+                organizationRepository.existsByNameIgnoreCase(request.getName()))
+            throw new ApiException("Organization name already exists ",HttpStatus.CONFLICT);
+
+        org.setName(request.getName());
+        org.setUpdatedAt(LocalDateTime.now());
+
+        return entityToOrgDto(org);
+
+    }
+
+
+//    helper methods------------------------------
+
+    // TODO we have to improve checkUnique method logic ,can throw null pointer error
+
+    private boolean checkUnique(OrganizationRequest request) {
+
+        if(request.getName()!=null &&
+                Boolean.TRUE.equals(organizationRepository.existsByNameIgnoreCase(request.getName())))
+            return true;
+
+        if(request.getSlug()!=null &&
+                Boolean.TRUE.equals(organizationRepository.existsBySlugIgnoreCase(request.getSlug())))
+            return true;
+
+        return false;
+    }
+
+    private OrganizationResponse entityToOrgDto(Organization org){
+
+        return  new OrganizationResponse(org.getId(),
+                org.getName(),org.getSlug(),org.getStatus(),
+                org.getCreatedAt(),org.getUpdatedAt());
     }
 }
