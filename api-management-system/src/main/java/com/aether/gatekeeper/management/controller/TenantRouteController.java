@@ -2,7 +2,9 @@ package com.aether.gatekeeper.management.controller;
 
 import com.aether.gatekeeper.management.dto.request.RouteRequest;
 import com.aether.gatekeeper.management.dto.request.RouteStatusRequest;
+import com.aether.gatekeeper.management.dto.response.AuditRecordResponse;
 import com.aether.gatekeeper.management.dto.response.RouteResponse;
+import com.aether.gatekeeper.management.dto.response.RouteVersionResponse;
 import com.aether.gatekeeper.management.service.RouteService;
 import jakarta.validation.Valid;
 import org.apache.coyote.Response;
@@ -58,6 +60,16 @@ public class TenantRouteController {
     public ResponseEntity<String> deleteRoute(@PathVariable Long id){
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
                 .body(routeService.deleteRoute(id));
+    }
+
+    @GetMapping("/version/{routeId}")
+    public ResponseEntity<List<RouteVersionResponse>> getVersions(@PathVariable String routeId){
+        return ResponseEntity.ok(routeService.getVersions(routeId));
+    }
+
+    @GetMapping("/audit-records")
+    public ResponseEntity<List<AuditRecordResponse>> getAuditRecords() {
+        return ResponseEntity.ok(routeService.getAuditRecords());
     }
 
 

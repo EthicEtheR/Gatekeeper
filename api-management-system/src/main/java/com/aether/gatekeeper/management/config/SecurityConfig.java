@@ -27,7 +27,7 @@ public class SecurityConfig {
                 .sessionManagement(session->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(http->
-                http.requestMatchers("/health","/api/auth/login").permitAll()
+                http.requestMatchers("/","/index.html","/styles.css","/app.js","/favicon.ico","/health","/api/auth/login").permitAll()
                         .requestMatchers("/api/platform/org/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/api/tenant/**").hasRole("TENANT_ADMIN")
                         .requestMatchers("/api/gateway/**").hasRole("GATEWAY_ADMIN")

@@ -46,6 +46,8 @@ public class OrganizationService {
 
     @Transactional
     public OrganizationResponse addOrganization( OrganizationRequest request) {
+        long startedAt=System.nanoTime();
+
         if(checkUnique(request))
             throw new ApiException("Organization name or slug already exists , Be Unique !! ",
                     HttpStatus.CONFLICT);

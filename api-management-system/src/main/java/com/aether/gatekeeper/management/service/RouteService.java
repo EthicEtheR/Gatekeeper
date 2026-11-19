@@ -3,12 +3,15 @@ package com.aether.gatekeeper.management.service;
 import com.aether.gatekeeper.management.dto.request.HeaderRuleRequest;
 import com.aether.gatekeeper.management.dto.request.RouteRequest;
 import com.aether.gatekeeper.management.dto.request.RouteStatusRequest;
+import com.aether.gatekeeper.management.dto.response.AuditRecordResponse;
 import com.aether.gatekeeper.management.dto.response.RouteResponse;
-import com.aether.gatekeeper.management.entity.ApiRoute;
-import com.aether.gatekeeper.management.entity.Organization;
-import com.aether.gatekeeper.management.entity.RouteHeaderRule;
+import com.aether.gatekeeper.management.dto.response.RouteVersionResponse;
+import com.aether.gatekeeper.management.entity.*;
+import com.aether.gatekeeper.management.enums.OrganizationStatus;
 import com.aether.gatekeeper.management.exception.ApiException;
 import com.aether.gatekeeper.management.repository.ApiRouteRepository;
+import com.aether.gatekeeper.management.repository.ControlPlaneAuditRecordRepository;
+import com.aether.gatekeeper.management.repository.RouteConfigurationVersionRepository;
 import com.aether.gatekeeper.management.util.TenantContext;
 import jakarta.validation.Valid;
 import org.jspecify.annotations.Nullable;
@@ -16,6 +19,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.time.LocalDateTime;
@@ -26,14 +30,21 @@ public class RouteService {
 
      private final TenantContext tenantContext;
      private final ApiRouteRepository apiRouteRepository;
+     private final ObjectMapper objectMapper;
+     private  final RouteConfigurationVersionRepository versionRepository;
+     private final ControlPlaneAuditRecordRepository auditRecordRepository;
 
-    public RouteService(TenantContext tenantContext, ApiRouteRepository apiRouteRepository) {
+    public RouteService(TenantContext tenantContext, ApiRouteRepository apiRouteRepository, ObjectMapper objectMapper, RouteConfigurationVersionRepository versionRepository, ControlPlaneAuditRecordRepository auditRecordRepository) {
         this.tenantContext = tenantContext;
         this.apiRouteRepository = apiRouteRepository;
+        this.objectMapper = objectMapper;
+        this.versionRepository = versionRepository;
+        this.auditRecordRepository = auditRecordRepository;
     }
 
     @Transactional
     public @Nullable RouteResponse createTenantRoute(RouteRequest request) {
+        long startedAt=System.nanoTime();
         Organization organization=tenantContext.getOrganization();
 
         validateRouteRequest(request,organization);
@@ -48,6 +59,8 @@ public class RouteService {
         populateValues(request,route);
 
         apiRouteRepository.save(route);
+
+        saveVersion(route,"CREATED");
 
         return RouteResponse.entityToDto(route);
     }
@@ -82,6 +95,7 @@ public class RouteService {
 
     @Transactional
     public @Nullable RouteResponse updateRoute(Long id, @Valid RouteRequest request) {
+        long startedAt=System.nanoTime();
 
         Organization organization=tenantContext.getOrganization();
 
@@ -97,7 +111,10 @@ public class RouteService {
         route.setConfigurationVersion(route.getConfigurationVersion()+1L);
         populateValues(request,route);
 
+
 //        apiRouteRepository.save(route);
+
+        saveVersion(route,"UPDATED");
 
         return RouteResponse.entityToDto(route);
 
@@ -105,6 +122,7 @@ public class RouteService {
 
     @Transactional
     public @Nullable RouteResponse changeRouteStatus(Long id, @Valid RouteStatusRequest statusRequest) {
+        long startedAt=System.nanoTime();
 
         Organization organization=tenantContext.getOrganization();
 
@@ -115,12 +133,17 @@ public class RouteService {
         route.setUpdatedAt(LocalDateTime.now());
         route.setActive(statusRequest.getStatus());
 
+        String changeType=statusRequest.getStatus()? "ACTIVATED" :"DEACTIVATED";
+
+        saveVersion(route,changeType);
+
         return RouteResponse.entityToDto(route);
 
     }
 
     @Transactional
     public @Nullable String deleteRoute(Long id) {
+        long startedAt=System.nanoTime();
         Organization organization=tenantContext.getOrganization();
 
         ApiRoute route=apiRouteRepository.findByIdAndOrganizationId(id, organization.getId())
@@ -131,15 +154,58 @@ public class RouteService {
 
         apiRouteRepository.delete(route);
 
+        saveVersion(route,"DELETED");
+
         return "Route removed successfully";
 
     }
 
 
-//    method to get all routes and config for Gateway service
+//    method to get all routes and config for Gateway service-------
+
 public @Nullable List<RouteResponse> getAllRoutesForGateway() {
-        return null;
+       List<ApiRoute> routeList=apiRouteRepository
+               .findAllByActiveTrueAndOrganizationStatus(OrganizationStatus.ACTIVE)
+               .orElseThrow(()->new ApiException("Active route and Organization not exists ",HttpStatus.NOT_FOUND));
+
+       List<RouteResponse> responses=new ArrayList<>();
+
+       for(ApiRoute route:routeList){
+          responses.add( RouteResponse.entityToDto(route));
+       }
+
+       return responses;
 }
+
+    @Transactional(readOnly = true)
+    public List<RouteVersionResponse> getVersions(String routeId) {
+        Organization organization = tenantContext.getOrganization();
+
+        List<RouteVersionResponse> response = new ArrayList<RouteVersionResponse>();
+        List<RouteConfigurationVersion> versions = versionRepository
+                .findAllByOrganizationIdAndRouteIdOrderByVersionNumberDesc(organization.getId(), routeId);
+
+        for(RouteConfigurationVersion version : versions) {
+            response.add(RouteVersionResponse.entityToDto(version));
+        }
+        return response;
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<AuditRecordResponse> getAuditRecords() {
+        Organization organization = tenantContext.getOrganization();
+
+        List<AuditRecordResponse> response = new ArrayList<AuditRecordResponse>();
+
+        List<ControlPlaneAuditRecord> records = auditRecordRepository
+                .findAllByOrganizationIdOrderByCreatedAtDesc(organization.getId());
+
+        for(ControlPlaneAuditRecord record : records) {
+            response.add(AuditRecordResponse.entityToDto(record));
+        }
+        return response;
+    }
 
 
 
@@ -239,6 +305,21 @@ public @Nullable List<RouteResponse> getAllRoutesForGateway() {
         }
 
     }
+
+    @Transactional
+    private void saveVersion(ApiRoute route,String changeType){
+        RouteConfigurationVersion version=new RouteConfigurationVersion();
+
+        version.setRouteId(route.getRouteId());
+        version.setOrganization(route.getOrganization());
+        version.setVersionNumber(route.getConfigurationVersion());
+        version.setChangeType(changeType);
+        version.setConfigurationSnapshot(objectMapper.writeValueAsString(RouteResponse.entityToDto(route)));
+        version.setCreatedAt(LocalDateTime.now());
+
+        versionRepository.save(version);
+    }
+
 
 
 

@@ -1,0 +1,28 @@
+package com.aether.gatekeeper.management.dto.response;
+
+import com.aether.gatekeeper.management.entity.ControlPlaneAuditRecord;
+import lombok.AllArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+
+@Setter
+@AllArgsConstructor
+public class AuditRecordResponse {
+    private Long id;
+    private String actor;
+    private String action;
+    private String resourceType;
+    private String resourceId;
+    private String correlationId;
+    private Long durationMs;
+    private String result;
+    private String details;
+    private LocalDateTime createdAt;
+
+    public static AuditRecordResponse entityToDto(ControlPlaneAuditRecord record) {
+        return new AuditRecordResponse(record.getId(), record.getActor(), record.getAction(),
+                record.getResourceType(), record.getResourceId(), record.getCorrelationId(),
+                record.getDurationMs(), record.getResult(), record.getDetails(), record.getCreatedAt());
+    }
+}

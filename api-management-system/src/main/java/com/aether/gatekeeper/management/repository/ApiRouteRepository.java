@@ -1,6 +1,7 @@
 package com.aether.gatekeeper.management.repository;
 
 import com.aether.gatekeeper.management.entity.ApiRoute;
+import com.aether.gatekeeper.management.enums.OrganizationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +15,7 @@ public interface ApiRouteRepository extends JpaRepository<ApiRoute,Long> {
 
     Optional<ApiRoute> findByIdAndOrganizationId(Long id, Long orgId);
     Optional<List<ApiRoute>> findAllByOrganizationId(Long orgId);
+
+    Optional<List<ApiRoute>> findAllByActiveTrueAndOrganizationStatus(OrganizationStatus status);
+
 }
