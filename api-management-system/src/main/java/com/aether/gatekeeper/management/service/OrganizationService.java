@@ -10,6 +10,7 @@ import com.aether.gatekeeper.management.entity.ManagementUser;
 import com.aether.gatekeeper.management.entity.Organization;
 import com.aether.gatekeeper.management.entity.Role;
 import com.aether.gatekeeper.management.enums.OrganizationStatus;
+import com.aether.gatekeeper.management.event.GatewayConfigurationEventService;
 import com.aether.gatekeeper.management.exception.ApiException;
 import com.aether.gatekeeper.management.repository.ManagementUserRepository;
 import com.aether.gatekeeper.management.repository.OrganizationRepository;
@@ -35,13 +36,15 @@ public class OrganizationService {
      private final RoleRepository roleRepository;
      private final PasswordEncoder passwordEncoder;
      private final TenantContext tenantContext;
+     private final GatewayConfigurationEventService configurationEventService;
 
-    public OrganizationService(OrganizationRepository organizationRepository, ManagementUserRepository managementUserRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, TenantContext tenantContext) {
+    public OrganizationService(OrganizationRepository organizationRepository, ManagementUserRepository managementUserRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, TenantContext tenantContext, GatewayConfigurationEventService configurationEventService) {
         this.organizationRepository = organizationRepository;
         this.managementUserRepository = managementUserRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.tenantContext = tenantContext;
+        this.configurationEventService = configurationEventService;
     }
 
     @Transactional
@@ -107,6 +110,10 @@ public class OrganizationService {
 
         org.setUpdatedAt(LocalDateTime.now());
 
+        //trigger event
+        configurationEventService.publish("ORGANIZATION_UPDATE", org.getId(), null,
+                null);
+
         return entityToOrgDto(org);
 
     }
@@ -127,6 +134,10 @@ public class OrganizationService {
         org.setStatus(statusRequest.getStatus());
         org.setUpdatedAt(LocalDateTime.now());
 
+        //trigger event
+        configurationEventService.publish("ORGANIZATION_"+statusRequest.getStatus(), org.getId(), null,
+                null);
+
         return entityToOrgDto(org);
 
     }
@@ -143,6 +154,10 @@ public class OrganizationService {
         org.setDeletedAt(LocalDateTime.now());
         org.setStatus(OrganizationStatus.DELETED);
         org.setUpdatedAt(LocalDateTime.now());
+
+        //trigger event
+        configurationEventService.publish("ORGANIZATION_DELETED", org.getId(), null,
+                null);
     }
 
 

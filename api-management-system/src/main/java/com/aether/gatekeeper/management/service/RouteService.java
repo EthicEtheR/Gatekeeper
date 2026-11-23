@@ -8,6 +8,7 @@ import com.aether.gatekeeper.management.dto.response.RouteResponse;
 import com.aether.gatekeeper.management.dto.response.RouteVersionResponse;
 import com.aether.gatekeeper.management.entity.*;
 import com.aether.gatekeeper.management.enums.OrganizationStatus;
+import com.aether.gatekeeper.management.event.GatewayConfigurationEventService;
 import com.aether.gatekeeper.management.exception.ApiException;
 import com.aether.gatekeeper.management.repository.ApiRouteRepository;
 import com.aether.gatekeeper.management.repository.ControlPlaneAuditRecordRepository;
@@ -33,13 +34,15 @@ public class RouteService {
      private final ObjectMapper objectMapper;
      private  final RouteConfigurationVersionRepository versionRepository;
      private final ControlPlaneAuditRecordRepository auditRecordRepository;
+     private final GatewayConfigurationEventService configurationChangeService;
 
-    public RouteService(TenantContext tenantContext, ApiRouteRepository apiRouteRepository, ObjectMapper objectMapper, RouteConfigurationVersionRepository versionRepository, ControlPlaneAuditRecordRepository auditRecordRepository) {
+    public RouteService(TenantContext tenantContext, ApiRouteRepository apiRouteRepository, ObjectMapper objectMapper, RouteConfigurationVersionRepository versionRepository, ControlPlaneAuditRecordRepository auditRecordRepository, GatewayConfigurationEventService configurationChangeService) {
         this.tenantContext = tenantContext;
         this.apiRouteRepository = apiRouteRepository;
         this.objectMapper = objectMapper;
         this.versionRepository = versionRepository;
         this.auditRecordRepository = auditRecordRepository;
+        this.configurationChangeService = configurationChangeService;
     }
 
     @Transactional
@@ -61,6 +64,9 @@ public class RouteService {
         apiRouteRepository.save(route);
 
         saveVersion(route,"CREATED");
+
+        configurationChangeService.publish("CREATED",route.getOrganization().getId(),route.getRouteId(),
+                route.getConfigurationVersion());
 
         return RouteResponse.entityToDto(route);
     }
@@ -116,6 +122,10 @@ public class RouteService {
 
         saveVersion(route,"UPDATED");
 
+        //trigger event
+        configurationChangeService.publish("UPDATED",route.getOrganization().getId(),route.getRouteId(),
+                route.getConfigurationVersion());
+
         return RouteResponse.entityToDto(route);
 
     }
@@ -137,6 +147,10 @@ public class RouteService {
 
         saveVersion(route,changeType);
 
+        //trigger event
+        configurationChangeService.publish(changeType,route.getOrganization().getId(),route.getRouteId(),
+                route.getConfigurationVersion());
+
         return RouteResponse.entityToDto(route);
 
     }
@@ -155,6 +169,10 @@ public class RouteService {
         apiRouteRepository.delete(route);
 
         saveVersion(route,"DELETED");
+
+//        trigger event
+        configurationChangeService.publish("DELETED",route.getOrganization().getId(),route.getRouteId(),
+                route.getConfigurationVersion());
 
         return "Route removed successfully";
 
