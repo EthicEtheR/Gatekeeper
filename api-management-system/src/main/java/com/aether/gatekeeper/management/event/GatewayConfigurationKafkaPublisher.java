@@ -11,7 +11,7 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 @Slf4j
 public class GatewayConfigurationKafkaPublisher {
-    
+
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
     private final String topic;
