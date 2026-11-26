@@ -1,4 +1,4 @@
-package com.aether.gatekeeper.smart_gateway_service.service;
+package com.aether.gatekeeper.smart_gateway_service.client;
 
 import com.aether.gatekeeper.smart_gateway_service.dto.request.LoginRequest;
 import com.aether.gatekeeper.smart_gateway_service.dto.response.GatewayRoute;
@@ -69,7 +69,7 @@ public class ApiManagementClient {
     private List<GatewayRoute> requestRoutes() {
 
         return restClient.get()
-                .uri("/api/gateway/routes")
+                .uri("/api/gateway/route")
                 .header("Authorization", "Bearer " + token)
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<GatewayRoute>>() { });

@@ -30,7 +30,7 @@ public class SecurityConfig {
                 http.requestMatchers("/","/index.html","/styles.css","/app.js","/favicon.ico","/health","/api/auth/login").permitAll()
                         .requestMatchers("/api/platform/org/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/api/tenant/**").hasRole("TENANT_ADMIN")
-                        .requestMatchers("/api/gateway/**").hasRole("GATEWAY_ADMIN")
+                        .requestMatchers("/api/gateway/**").hasRole("GATEWAY_SERVICE")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o ->
                         o.jwt(j -> j.jwtAuthenticationConverter(jwtAuthenticationConverter())))

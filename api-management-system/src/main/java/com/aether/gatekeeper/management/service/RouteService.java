@@ -181,7 +181,7 @@ public class RouteService {
 
 //    method to get all routes and config for Gateway service-------
 
-public @Nullable List<RouteResponse> getAllRoutesForGateway() {
+public  List<RouteResponse> getAllRoutesForGateway() {
        List<ApiRoute> routeList=apiRouteRepository
                .findAllByActiveTrueAndOrganizationStatus(OrganizationStatus.ACTIVE)
                .orElseThrow(()->new ApiException("Active route and Organization not exists ",HttpStatus.NOT_FOUND));
